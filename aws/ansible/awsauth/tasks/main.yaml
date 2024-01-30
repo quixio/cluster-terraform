@@ -1,0 +1,4 @@
+- name: "Create Users Map for IAM users in the cluster"
+  k8s:
+    state: present
+    definition: "{{ lookup('template', 'configmap.yaml.j2') | from_yaml }}"

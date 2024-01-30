@@ -1,0 +1,54 @@
+- name: Generate SHA
+  set_fact:
+    sha: "{{ k8s_cluster_name | hash('sha1') | truncate(4, true, '') }}"
+
+- name: Set EBS CSI driver role name
+  set_fact:
+    csi_driver_role_name: >-
+      {{ ('AmazonEKS_EBS_CSI_DriverRole' ~ k8s_cluster_name ~ region)[:60] ~ sha }}
+
+
+- name: display variable for debugging
+  debug:
+    msg: "{{ csi_driver_role_name }}"
+
+- name: Set KMS key EBS policy name
+  set_fact:
+    kms_key_policy_name: >-
+      {{ ('KMS_Key_For_Encryption_On_EBS_Policy' ~ k8s_cluster_name ~ region)[:60] ~ sha }}
+
+- name: display variable for debugging
+  debug:
+      msg: "{{ kms_key_policy_name }}"
+
+- name: Create a role {{ csi_driver_role_name }} with description and tags
+  community.aws.iam_role:
+    name: "{{ csi_driver_role_name }}"
+
+    assume_role_policy_document: "{{ lookup('template','policy-role.json.j2') }}"
+    description: This is EKS-EBS role for controller
+    managed_policies:
+      - arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy
+    purge_policies: true
+    tags:
+      managed-by: ansible
+
+
+
+- name: Create KMS policy from template for {{ csi_driver_role_name }}
+  amazon.aws.iam_policy:
+    iam_type: role
+    iam_name: "{{ csi_driver_role_name }}"
+    policy_name:  "{{ kms_key_policy_name }}"
+    state: present
+    policy_json: "{{ lookup('template', 'policy-kms.json.j2') }}"
+
+
+- name: Change the context
+  command: kubectl config set current-context arn:aws:eks:{{ region }}:{{ account }}:cluster/{{ k8s_cluster_name }}
+
+- name: Patch EBS controller
+  command: kubectl annotate serviceaccount ebs-csi-controller-sa -n kube-system eks.amazonaws.com/role-arn=arn:aws:iam::{{ account }}:role/{{ csi_driver_role_name }} --overwrite
+
+- name: Restart EBS pods
+  command: kubectl delete pod -l app.kubernetes.io/name=aws-ebs-csi-driver -n kube-system

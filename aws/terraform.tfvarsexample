@@ -1,0 +1,12 @@
+## EKS
+cluster_name = "nameCluster"
+cluster_version = "Cluster version"
+vpc_id = "vpc-06969503b6b9a08f5"
+controlplane_subnet_ids = ["subnet-1","subnet-2","subnet-3"]  #subnetIDs
+dataplane_subnet_ids = ["subnet-1","subnet-2","subnet-3"]
+
+
+
+##EFS
+kms_key_arn = "" #If use an existing one
+mount_targets = ["subnet-1","subnet-2","subnet-3"]

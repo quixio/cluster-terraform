@@ -1,0 +1,60 @@
+- name: Generate SHA
+  set_fact:
+    sha: "{{ k8s_cluster_name | hash('sha1') | truncate(4, true, '') }}"
+
+- name: Set Amazon EKS NLB_Role role name
+  set_fact:
+    eks_nlb_role_name: >-
+      {{ ('AmazonEKS_NLB_Role' ~ k8s_cluster_name ~ region)[:60] ~ sha }}
+
+- name: Set NLB Policy name
+  set_fact:
+    eks_nlb_policy_name: >-
+      {{ ('NLB_Policy' ~ k8s_cluster_name ~ region)[:60] ~ sha }}
+
+- name: Create a role {{ eks_nlb_role_name }} with description and tags
+  community.aws.iam_role:
+    name: "{{ eks_nlb_role_name }}"
+    assume_role_policy_document: "{{ lookup('template','trust-policy.json.j2') }}"
+    description: This is EKS-NLB role for controller
+    purge_policies: true
+    tags:
+      managed-by: ansible
+
+
+- name: Create KMS policy from template for {{ eks_nlb_role_name }}
+  amazon.aws.iam_policy:
+    iam_type: role
+    iam_name:  "{{ eks_nlb_role_name }}"
+    policy_name:  "{{ eks_nlb_policy_name }}"
+    state: present
+    policy_json: "{{ lookup('template', 'policy-iam.json.j2') }}"
+
+- name: "Create Service Account for NLB"
+  k8s:
+    state: present
+    namespace: kube-system
+    definition: "{{ lookup('template', 'serviceaccount.yml.j2') | from_yaml }}"
+    #src: "{{ lookup('template', 'serviceaccount.yaml.j2') }}"
+
+
+- name: Add stable chart repo
+  kubernetes.core.helm_repository:
+    name: eks
+    repo_url: "https://aws.github.io/eks-charts"
+
+
+- name: Deploy latest version of NLB controller chart inside monitoring namespace with values
+  kubernetes.core.helm:
+    name: aws-load-balancer-controller
+    release_namespace: kube-system
+    chart_ref: eks/aws-load-balancer-controller
+    values:
+      image:
+      #Check Container Address https://docs.aws.amazon.com/eks/latest/userguide/add-ons-images.html
+        repository: 602401143452.dkr.ecr.{{ region }}.amazonaws.com/amazon/aws-load-balancer-controller
+      
+      clusterName: "{{ k8s_cluster_name }}"
+      serviceAccount:
+        create: false
+        name: aws-load-balancer-controller

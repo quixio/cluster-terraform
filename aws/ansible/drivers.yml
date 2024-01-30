@@ -1,0 +1,19 @@
+- name: "Installing all python libraries in the node"
+  hosts: localhost
+  connection: local
+  roles:
+    - awsauth
+    - ebs
+    - efs
+    - nlb
+  vars:
+    users:
+      - username: quique
+    account: "959852776853"
+    k8s_cluster_name: "test-cluster"
+    region: eu-west-1
+    k8s_role: eks-quix-cluster #this is iam_role_name from node managed
+    k8s_id: 8D0974A5CE3BACC062B406302EF58847
+    k8s_key_id: 897f0f37-4ce0-4b33-8afa-beda75938387
+    efs_id: fs-0eb65b7ba2e58c707
+  

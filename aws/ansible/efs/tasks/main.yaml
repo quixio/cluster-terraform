@@ -1,0 +1,75 @@
+- name: Generate SHA
+  set_fact:
+    sha: "{{ k8s_cluster_name | hash('sha1') | truncate(4, true, '') }}"
+
+- name: Set EFS CSI driver role name
+  set_fact:
+    csi_driver_role_name_efs: >-
+      {{ ('AmazonEKS_EFS_CSI_DriverRole' ~ k8s_cluster_name ~ region)[:60] ~ sha }}
+
+- name: Set EFS_Policy name
+  set_fact:
+    efs_policy_name: >-
+      {{ ('EFS_Policy' ~ k8s_cluster_name ~ region)[:60] ~ sha }}
+
+- name: Create a role {{ csi_driver_role_name_efs }} with description and tags
+  community.aws.iam_role:
+    name: "{{ csi_driver_role_name_efs }}"
+    assume_role_policy_document: "{{ lookup('template','trust-policy.json.j2') }}"
+    description: This is EKS-EFS role for controller
+    purge_policies: true
+    tags:
+      managed-by: ansible
+
+
+- name: Create KMS policy from template for {{ csi_driver_role_name_efs }}
+  amazon.aws.iam_policy:
+    iam_type: role
+    iam_name:  "{{ csi_driver_role_name_efs }}"
+    policy_name: "{{ efs_policy_name }}"
+    state: present
+    policy_json: "{{ lookup('template', 'policy-iam.json.j2') }}"
+
+- name: "Create Service Account for EFS"
+  k8s:
+    state: present
+    namespace: kube-system
+    definition: "{{ lookup('template', 'serviceaccount.yml.j2') | from_yaml }}"
+    #src: "{{ lookup('template', 'serviceaccount.yaml.j2') }}"
+
+
+- name: Add stable chart repo
+  kubernetes.core.helm_repository:
+    name: aws-efs-csi-driver
+    repo_url: "https://kubernetes-sigs.github.io/aws-efs-csi-driver/"
+
+
+- name: Deploy latest version of EFS controller chart inside monitoring namespace with values
+  kubernetes.core.helm:
+    name: aws-efs-csi-driver
+    release_namespace: kube-system
+    chart_ref: aws-efs-csi-driver/aws-efs-csi-driver
+    values:
+      image:
+      #Check Container Address https://docs.aws.amazon.com/eks/latest/userguide/add-ons-images.html
+        repository: 602401143452.dkr.ecr.{{ region }}.amazonaws.com/eks/aws-efs-csi-driver
+      controller:
+        serviceAccount:
+          create: false
+          name: efs-csi-controller-sa
+
+
+
+# - name: "Create azurefile StorageClass for EFS"
+#   k8s:
+#     state: present
+#     definition: "{{ lookup('template', 'storageclass.yml.j2') | from_yaml }}"
+#   vars:
+#     storageClassName: "azurefile"
+
+- name: "Create efs-sc StorageClass for EFS"
+  k8s:
+    state: present
+    definition: "{{ lookup('template', 'storageclass.yml.j2') | from_yaml }}"
+  vars:
+    storageClassName: "efs-sc"

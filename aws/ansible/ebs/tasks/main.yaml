@@ -8,18 +8,12 @@
       {{ ('AmazonEKS_EBS_CSI_DriverRole' ~ k8s_cluster_name ~ region)[:60] ~ sha }}
 
 
-- name: display variable for debugging
-  debug:
-    msg: "{{ csi_driver_role_name }}"
 
 - name: Set KMS key EBS policy name
   set_fact:
     kms_key_policy_name: >-
       {{ ('KMS_Key_For_Encryption_On_EBS_Policy' ~ k8s_cluster_name ~ region)[:60] ~ sha }}
 
-- name: display variable for debugging
-  debug:
-      msg: "{{ kms_key_policy_name }}"
 
 - name: Create a role {{ csi_driver_role_name }} with description and tags
   community.aws.iam_role:

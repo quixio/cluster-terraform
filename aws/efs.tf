@@ -23,10 +23,7 @@ resource "aws_efs_file_system" "this" {
     }
   }
 
-  tags = merge(
-    var.tags,
-    { Name = var.name },
-  )
+  tags = local.tags
 }
 
 
@@ -36,11 +33,11 @@ resource "aws_efs_file_system" "this" {
 ################################################################################
 
 resource "aws_efs_mount_target" "this" {
-  for_each = { for k, v in var.mount_targets : k => v }
+  for_each = { for k, v in module.vpc.private_subnets : k => v }
 
   file_system_id  = aws_efs_file_system.this.id
   # ip_address      = try(each.value.ip_address, null)
-  security_groups = [module.eks.cluster_primary_security_group_id]
+  security_groups = [module.eks_al2.cluster_primary_security_group_id]
   subnet_id       = each.value
 }
 

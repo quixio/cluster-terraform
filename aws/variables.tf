@@ -8,12 +8,17 @@ variable "cluster_name" {
 }
 
 variable "cluster_version" {
-  description = "Kubernetes `<major>.<minor>` version to use for the EKS cluster (i.e.: `1.24`)"
+  description = "Kubernetes `<major>.<minor>` version to use for the EKS cluster (i.e.: `1.31`)"
   type        = string
-  default     = null
+  default     = "1.31"
 }
 
 
+variable "enable_cluster_creator_admin_permissions" {
+  description = "Indicates whether or not the Amazon EKS public API server endpoint is enabled"
+  type        = bool
+  default     = true
+}
 
 
 variable "cluster_endpoint_public_access" {
@@ -22,29 +27,7 @@ variable "cluster_endpoint_public_access" {
   default     = true
 }
 
-variable "cluster_endpoint_public_access_cidrs" {
-  description = "List of CIDR blocks which can access the Amazon EKS public API server endpoint"
-  type        = list(string)
-  default     = ["0.0.0.0/0"]
-}
 
-variable "cluster_endpoint_private_access" {
-  description = "Indicates whether or not the Amazon EKS private API server endpoint is enabled"
-  type        = bool
-  default     = true
-}
-
-variable "manage_aws_auth_configmap" {
-  description = "Determines whether to manage the aws-auth configmap"
-  type        = bool
-  default     = true
-}
-
-variable "create_aws_auth_configmap" {
-  description = "Determines whether to create the aws-auth configmap. NOTE - this is only intended for scenarios where the configmap does not exist (i.e. - when using only self-managed node groups). Most users should use `manage_aws_auth_configmap`"
-  type        = bool
-  default     = false
-}
 
 ################################################################################
 # Networking
@@ -55,13 +38,6 @@ variable "vpc_id" {
   type        = string
   default     = null
 }
-
-variable "ags_securitygroup_id" {
-  description = "ID of security of ASG to allow the access of the k8s API from bastion"
-  type        = string
-  default     = null
-}
-
 
 
 variable "controlplane_subnet_ids" {
@@ -126,17 +102,6 @@ variable "kms_key_arn" {
   default     = null
 }
 
-# variable "provisioned_throughput_in_mibps" {
-#   description = "The throughput, measured in MiB/s, that you want to provision for the file system. Only applicable with `throughput_mode` set to `provisioned`"
-#   type        = number
-#   default     = null
-# }
-
-# variable "throughput_mode" {
-#   description = "Throughput mode for the file system. Defaults to `bursting`. Valid values: `bursting`, `provisioned`. When using `provisioned`, also set `provisioned_throughput_in_mibps`"
-#   type        = string
-#   default     = null
-# }
 
 variable "lifecycle_policy" {
   description = "A file system [lifecycle policy](https://docs.aws.amazon.com/efs/latest/ug/API_LifecyclePolicy.html) object"

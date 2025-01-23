@@ -38,25 +38,25 @@
     #src: "{{ lookup('template', 'serviceaccount.yaml.j2') }}"
 
 
-- name: Add stable chart repo
-  kubernetes.core.helm_repository:
-    name: aws-efs-csi-driver
-    repo_url: "https://kubernetes-sigs.github.io/aws-efs-csi-driver/"
+# - name: Add stable chart repo
+#   kubernetes.core.helm_repository:
+#     name: aws-efs-csi-driver
+#     repo_url: "https://kubernetes-sigs.github.io/aws-efs-csi-driver/"
 
 
-- name: Deploy latest version of EFS controller chart inside monitoring namespace with values
-  kubernetes.core.helm:
-    name: aws-efs-csi-driver
-    release_namespace: kube-system
-    chart_ref: aws-efs-csi-driver/aws-efs-csi-driver
-    values:
-      image:
-      #Check Container Address https://docs.aws.amazon.com/eks/latest/userguide/add-ons-images.html
-        repository: 602401143452.dkr.ecr.{{ region }}.amazonaws.com/eks/aws-efs-csi-driver
-      controller:
-        serviceAccount:
-          create: false
-          name: efs-csi-controller-sa
+# - name: Deploy latest version of EFS controller chart inside monitoring namespace with values
+#   kubernetes.core.helm:
+#     name: aws-efs-csi-driver
+#     release_namespace: kube-system
+#     chart_ref: aws-efs-csi-driver/aws-efs-csi-driver
+#     values:
+#       image:
+#       #Check Container Address https://docs.aws.amazon.com/eks/latest/userguide/add-ons-images.html
+#         repository: 900612956339.dkr.ecr.{{ region }}.amazonaws.com/eks/aws-efs-csi-driver
+#       controller:
+#         serviceAccount:
+#           create: false
+#           name: efs-csi-controller-sa
 
 
 
